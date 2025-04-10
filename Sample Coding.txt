@@ -1,0 +1,161 @@
+//SAMPLE CODING//
+
+//Third-Person Camera Controller 
+using UnityEngine;
+
+public class ThirdPersonCamera : MonoBehaviour
+{
+    public Transform target;
+    public Vector3 offset;
+    public float rotationSpeed = 5f;
+
+    private float currentX = 0f;
+    private float currentY = 0f;
+
+    void LateUpdate()
+    {
+        currentX += Input.GetAxis("Mouse X") * rotationSpeed;
+        currentY -= Input.GetAxis("Mouse Y") * rotationSpeed;
+        currentY = Mathf.Clamp(currentY, 5, 60);
+
+        Quaternion rotation = Quaternion.Euler(currentY, currentX, 0);
+        transform.position = target.position + rotation * offset;
+        transform.LookAt(target);
+    }
+}
+
+//Third-Person Character Controller
+using UnityEngine;
+
+[RequireComponent(typeof(CharacterController))]
+public class PlayerController : MonoBehaviour
+{
+    public float moveSpeed = 5f;
+    public float gravity = -9.81f;
+    public Transform cameraTransform;
+
+    private CharacterController controller;
+    private Vector3 velocity;
+
+    void Start()
+    {
+        controller = GetComponent<CharacterController>();
+    }
+    void Update()
+    {
+        float horizontal = Input.GetAxis("Horizontal");
+        float vertical = Input.GetAxis("Vertical");
+
+        Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
+        if (direction.magnitude >= 0.1f)
+        {
+            float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cameraTransform.eulerAngles.y;
+            Vector3 moveDir = Quaternion.Euler(0, targetAngle, 0) * Vector3.forward;
+            controller.Move(moveDir.normalized * moveSpeed * Time.deltaTime);
+        }
+
+        velocity.y += gravity * Time.deltaTime;
+        controller.Move(velocity * Time.deltaTime);
+    }
+}
+
+//Movable Object in Operation Theatre
+using UnityEngine;
+
+public class MovableObject : MonoBehaviour
+{
+    private Vector3 offset;
+    private bool isDragging = false;
+
+    void OnMouseDown()
+    {
+        offset = transform.position - GetMouseWorldPos();
+        isDragging = true;
+    }
+
+    void OnMouseUp()
+    {
+        isDragging = false;
+    }
+
+    void Update()
+    {
+        if (isDragging)
+        {
+            Vector3 mousePos = GetMouseWorldPos() + offset;
+            transform.position = new Vector3(mousePos.x, transform.position.y, mousePos.z);
+        }
+    }
+
+    Vector3 GetMouseWorldPos()
+    {
+        Plane plane = new Plane(Vector3.up, Vector3.zero);
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        float distance;
+        if (plane.Raycast(ray, out distance))
+        {
+            return ray.GetPoint(distance);
+        }
+        return Vector3.zero;
+    }
+}
+
+//VR Gears Controller Code
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class VRGearController : MonoBehaviour
+{
+    [Header("Input Actions")]
+    public InputActionProperty triggerAction;     // Trigger button
+    public InputActionProperty gripAction;        // Grip button
+    public InputActionProperty primaryButton;     // 'A' or 'X' button
+    public InputActionProperty joystickAction;    // Joystick axis
+
+    void Update()
+    {
+        // Trigger value (float between 0 and 1)
+        float triggerValue = triggerAction.action.ReadValue<float>();
+        if (triggerValue > 0.1f)
+        {
+            Debug.Log("Trigger pressed: " + triggerValue);
+        }
+
+        // Grip button value
+        float gripValue = gripAction.action.ReadValue<float>();
+        if (gripValue > 0.1f)
+        {
+            Debug.Log("Grip pressed: " + gripValue);
+        }
+        // Button press
+        bool primaryPressed = primaryButton.action.ReadValue<float>() > 0.5f;
+        if (primaryPressed)
+        {
+            Debug.Log("Primary Button Pressed (A/X)");
+        }
+        // Joystick movement
+        Vector2 joystick = joystickAction.action.ReadValue<Vector2>();
+        if (joystick.magnitude > 0.1f)
+        {
+            Debug.Log("Joystick moved: " + joystick);
+        }
+    }
+}
+
+//Grabbable VR Object (Interactable Surgical Tools)
+using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit;
+
+public class VRGrabObject : XRGrabInteractable
+{
+    protected override void OnSelectEntered(XRBaseInteractor interactor)
+    {
+        base.OnSelectEntered(interactor);
+        Debug.Log("Grabbed " + gameObject.name);
+    }
+    protected override void OnSelectExited(XRBaseInteractor interactor)
+    {
+        base.OnSelectExited(interactor);
+        Debug.Log("Released " + gameObject.name);
+    }
+}
